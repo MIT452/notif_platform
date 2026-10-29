@@ -17,7 +17,7 @@ export function useNotifications() {
 
   useEffect(() => {
     load().catch(console.error);
-    const socket = io({ auth: { token: getToken() } });
+    const socket = io(import.meta.env.VITE_API_URL || undefined, { auth: { token: getToken() } });
     socket.on('notification', (n) => {
       setItems((prev) => (prev.some((p) => p.id === n.id) ? prev : [{ ...n, is_read: false }, ...prev]));
       setUnread((u) => u + 1);
