@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
+    "migrate": "node src/migrate.js",
     "seed": "node src/seed.js",
     "vapid": "npx web-push generate-vapid-keys",
     "test": "node --test test/render.test.js"
