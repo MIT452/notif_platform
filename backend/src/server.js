@@ -8,4 +8,6 @@ const server = http.createServer(app);
 initSocket(server);
 startWorkers(); // même processus que Socket.IO (voir README pour les séparer en production)
 
-server.listen(env.port, () => console.log(`API prête sur http://localhost:${env.port}`));
+server.listen(env.port, '0.0.0.0', () => {
+  console.log(`API prête et écoute sur le port ${env.port}`);
+});
