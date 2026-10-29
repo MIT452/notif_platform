@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { pool } from '../config/db.js';
 import { signToken, requireAuth } from '../middleware/auth.js';
 import { wrap } from '../middleware/error.js';
+import { notify } from '../services/notify.js';
 
 const router = Router();
 
@@ -21,6 +22,8 @@ router.post('/register', wrap(async (req, res) => {
   const hash = await bcrypt.hash(password, 10);
   const [r] = await pool.query('INSERT INTO users (name, email, password_hash) VALUES (?,?,?)', [name, email, hash]);
   const user = { id: r.insertId, name, email, role: 'user' };
+  // Exemple d'utilisation d'un template dans le code : notification de bienvenue
+  notify({ template: 'welcome', to: user.id }).catch((e) => console.error('Notification de bienvenue :', e.message));
   res.status(201).json({ token: signToken(user), user });
 }));
 

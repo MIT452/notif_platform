@@ -1,0 +1,3 @@
+$kind: collection
+name: Notification Platform
+description: API collection for the Notification Platform backend (Node.js/Express on port 4000).

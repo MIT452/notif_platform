@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { api, getToken } from './api.js';
 
@@ -6,6 +6,8 @@ import { api, getToken } from './api.js';
 export function useNotifications() {
   const [items, setItems] = useState([]);
   const [unread, setUnread] = useState(0);
+  const [toast, setToast] = useState(null);
+  const timer = useRef(null);
 
   const load = useCallback(async () => {
     const data = await api('/notifications/me?limit=50');
@@ -19,8 +21,11 @@ export function useNotifications() {
     socket.on('notification', (n) => {
       setItems((prev) => (prev.some((p) => p.id === n.id) ? prev : [{ ...n, is_read: false }, ...prev]));
       setUnread((u) => u + 1);
+      setToast(n);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setToast(null), 5000);
     });
-    return () => socket.disconnect();
+    return () => { socket.disconnect(); clearTimeout(timer.current); };
   }, [load]);
 
   const markRead = async (id) => {
@@ -35,5 +40,5 @@ export function useNotifications() {
     setUnread(0);
   };
 
-  return { items, unread, markRead, markAllRead };
+  return { items, unread, markRead, markAllRead, toast, dismissToast: () => setToast(null), reload: load };
 }

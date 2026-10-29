@@ -1,21 +1,32 @@
-export default function NotificationList({ items, markRead, markAllRead }) {
+import { useState } from 'react';
+import NotificationItem from './NotificationItem.jsx';
+import Icon from './Icon.jsx';
+
+export default function NotificationList({ items, unread, markRead, markAllRead }) {
+  const [filter, setFilter] = useState('all');
+  const shown = filter === 'unread' ? items.filter((n) => !n.is_read) : items;
+
   return (
-    <div className="card">
-      <div className="row">
-        <h2>Mes notifications</h2>
-        <button onClick={markAllRead}>Tout marquer comme lu</button>
-      </div>
-      {items.length === 0 && <p className="muted">Rien pour le moment.</p>}
-      {items.map((n) => (
-        <div key={n.id} className={`item ${n.type} ${n.is_read ? '' : 'unread'}`}>
-          <div className="row">
-            <b>{n.title}</b>
-            <small>{new Date(n.created_at.replace(' ', 'T')).toLocaleString('fr-FR')}</small>
-          </div>
-          <span>{n.body}</span>
-          {!n.is_read && <button className="link" onClick={() => markRead(n.id)}>Marquer comme lu</button>}
+    <section className="card">
+      <div className="card-head">
+        <div>
+          <h2>Mes notifications</h2>
+          <p className="muted">{unread > 0 ? `${unread} non lue${unread > 1 ? 's' : ''}` : 'Tout est à jour'}</p>
         </div>
-      ))}
-    </div>
+        <button className="btn soft" onClick={markAllRead} disabled={unread === 0}>
+          <Icon name="check" size={16} /> Tout marquer lu
+        </button>
+      </div>
+      <div className="segmented">
+        <button className={filter === 'all' ? 'on' : ''} onClick={() => setFilter('all')}>Toutes</button>
+        <button className={filter === 'unread' ? 'on' : ''} onClick={() => setFilter('unread')}>Non lues</button>
+      </div>
+      <div className="notif-list">
+        {shown.length === 0 && (
+          <div className="empty big"><Icon name="inbox" size={36} /><p>Aucune notification ici.</p></div>
+        )}
+        {shown.map((n) => <NotificationItem key={n.id} n={n} onClick={() => !n.is_read && markRead(n.id)} />)}
+      </div>
+    </section>
   );
 }

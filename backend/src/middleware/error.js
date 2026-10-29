@@ -11,6 +11,7 @@ export function errorHandler(err, req, res, _next) {
   if (err instanceof ZodError) {
     return res.status(400).json({ error: 'Données invalides', details: err.errors.map((e) => `${e.path.join('.')}: ${e.message}`) });
   }
+  if (err.status) return res.status(err.status).json({ error: err.message });
   if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Valeur déjà existante' });
   console.error(err);
   res.status(500).json({ error: 'Erreur interne du serveur' });

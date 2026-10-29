@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { pool } from '../config/db.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { wrap } from '../middleware/error.js';
-import { queues, jobOptions } from '../queue.js';
+import { createNotification } from '../services/notify.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -43,41 +43,19 @@ router.patch('/:id/read', wrap(async (req, res) => {
 const createSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   body: z.string().min(1).optional(),
-  type: z.enum(['info', 'success', 'warning', 'alert']).default('info'),
+  type: z.enum(['info', 'success', 'warning', 'alert']).optional(),
   templateId: z.number().int().optional(),
+  vars: z.record(z.union([z.string(), z.number()])).default({}),
   targetType: z.enum(['all', 'user']).default('all'),
   targetUserId: z.number().int().optional(),
-  channels: z.array(z.enum(['inapp', 'email', 'push'])).min(1).default(['inapp']),
+  channels: z.array(z.enum(['inapp', 'email', 'push'])).min(1).optional(),
   scheduledAt: z.string().datetime().optional(), // ISO 8601
 });
 
 router.post('/', requireAdmin, wrap(async (req, res) => {
   const data = createSchema.parse(req.body);
-  let { title, body } = data;
-
-  if (data.templateId) {
-    const [[tpl]] = await pool.query('SELECT * FROM templates WHERE id = ?', [data.templateId]);
-    if (!tpl) return res.status(404).json({ error: 'Template introuvable' });
-    title = title || tpl.subject;
-    body = body || tpl.body;
-  }
-  if (!title || !body) return res.status(400).json({ error: 'Titre et message requis (ou un template)' });
-  if (data.targetType === 'user' && !data.targetUserId) {
-    return res.status(400).json({ error: 'targetUserId requis pour un ciblage utilisateur' });
-  }
-
-  const scheduled = data.scheduledAt ? new Date(data.scheduledAt) : null;
-  const delay = scheduled ? Math.max(scheduled.getTime() - Date.now(), 0) : 0;
-  const status = delay > 0 ? 'scheduled' : 'processing';
-
-  const [r] = await pool.query(
-    `INSERT INTO notifications (title, body, type, template_id, target_type, target_user_id, channels, scheduled_at, status, created_by)
-     VALUES (?,?,?,?,?,?,?,?,?,?)`,
-    [title, body, data.type, data.templateId || null, data.targetType, data.targetUserId || null,
-     JSON.stringify(data.channels), scheduled, status, req.user.id]
-  );
-  await queues.dispatch.add('dispatch', { notificationId: r.insertId }, { ...jobOptions, delay });
-  res.status(201).json({ id: r.insertId, status });
+  const result = await createNotification(data, req.user.id);
+  res.status(201).json(result);
 }));
 
 router.get('/', requireAdmin, wrap(async (req, res) => {

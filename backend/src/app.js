@@ -10,6 +10,7 @@ import templates from './routes/templates.js';
 import preferences from './routes/preferences.js';
 import push from './routes/push.js';
 import admin from './routes/admin.js';
+import notifyApi from './routes/notify.js';
 
 export const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api/templates', templates);
 app.use('/api/preferences', preferences);
 app.use('/api/push', push);
 app.use('/api/admin', admin);
+app.use('/api/notify', notifyApi);
 
 app.use(notFound);
 app.use(errorHandler);

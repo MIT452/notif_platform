@@ -12,9 +12,12 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS templates (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(100) NOT NULL UNIQUE,          -- identifiant utilisé dans le code : notify({ template: 'welcome' })
   name VARCHAR(100) NOT NULL UNIQUE,
   subject VARCHAR(200) NOT NULL,
   body TEXT NOT NULL,
+  type ENUM('info','success','warning','alert') NOT NULL DEFAULT 'info',
+  channels JSON NULL,                         -- canaux par défaut, ex. ["inapp","email"]
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

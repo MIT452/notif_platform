@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 
-const LABELS = { inapp: 'Dans l’application', email: 'Email', push: 'Push navigateur' };
+const CHANNELS = [
+  { id: 'inapp', label: 'Dans l’application', desc: 'Cloche et liste de notifications, en temps réel.' },
+  { id: 'email', label: 'Email', desc: 'Un message envoyé sur votre adresse email.' },
+  { id: 'push', label: 'Push navigateur', desc: 'Notification système, même onglet fermé.' },
+];
 
 function urlBase64ToUint8Array(base64) {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4);
@@ -11,14 +15,18 @@ function urlBase64ToUint8Array(base64) {
 
 export default function Preferences() {
   const [prefs, setPrefs] = useState(null);
-  const [msg, setMsg] = useState('');
+  const [msg, setMsg] = useState({ text: '', ok: true });
 
   useEffect(() => { api('/preferences').then(setPrefs).catch(console.error); }, []);
 
   const toggle = async (channel) => {
     const enabled = !prefs[channel];
-    await api('/preferences', { method: 'PUT', body: { channel, enabled } });
     setPrefs({ ...prefs, [channel]: enabled });
+    try {
+      await api('/preferences', { method: 'PUT', body: { channel, enabled } });
+    } catch {
+      setPrefs((p) => ({ ...p, [channel]: !enabled }));
+    }
   };
 
   const enablePush = async () => {
@@ -33,23 +41,26 @@ export default function Preferences() {
         applicationServerKey: urlBase64ToUint8Array(publicKey),
       });
       await api('/push/subscribe', { method: 'POST', body: sub.toJSON() });
-      setMsg('Notifications navigateur activées ✅');
+      setMsg({ text: 'Notifications navigateur activées sur cet appareil.', ok: true });
     } catch (err) {
-      setMsg(err.message);
+      setMsg({ text: err.message, ok: false });
     }
   };
 
-  if (!prefs) return <p>Chargement…</p>;
+  if (!prefs) return <p className="muted">Chargement…</p>;
   return (
-    <div className="card">
-      <h2>Préférences de notification</h2>
-      {Object.keys(LABELS).map((c) => (
-        <label key={c} className="switch">
-          <input type="checkbox" checked={prefs[c]} onChange={() => toggle(c)} /> {LABELS[c]}
-        </label>
-      ))}
-      <button onClick={enablePush}>Activer le push sur ce navigateur</button>
-      {msg && <p className="muted">{msg}</p>}
-    </div>
+    <section className="card">
+      <div className="card-head"><div><h2>Préférences</h2><p className="muted">Choisissez comment recevoir vos notifications.</p></div></div>
+      <div className="pref-list">
+        {CHANNELS.map((c) => (
+          <label key={c.id} className="pref">
+            <div><b>{c.label}</b><span>{c.desc}</span></div>
+            <input type="checkbox" className="switch" checked={prefs[c.id]} onChange={() => toggle(c.id)} />
+          </label>
+        ))}
+      </div>
+      <button className="btn soft" onClick={enablePush}>Activer le push sur ce navigateur</button>
+      {msg.text && <p className={msg.ok ? 'ok-box' : 'alert-box'}>{msg.text}</p>}
+    </section>
   );
 }
