@@ -16,15 +16,14 @@ async function runMigration() {
     user: env.db.user,
     password: env.db.password,
     database: env.db.database,
-    multipleStatements: true // Obligatoire pour exécuter plusieurs requêtes SQL d'un coup
+    multipleStatements: true
   });
 
   try {
-    // Cibler le fichier de la deuxième migration
     const migrationPath = path.join(__dirname, '../sql/migration_002_templates.sql');
     
     if (!fs.existsSync(migrationPath)) {
-      throw new Error(`Le fichier de migration n'existe pas à l'emplacement : ${migrationPath}`);
+      throw new Error(`Le fichier de migration n'existe pas : ${migrationPath}`);
     }
 
     console.log('📖 Lecture du fichier de migration 002...');
@@ -35,8 +34,13 @@ async function runMigration() {
     
     console.log('✅ Migration 002 appliquée avec succès !');
   } catch (error) {
-    console.error('❌ Échec de la migration :', error.message);
-    process.exit(1); // Bloque le build Render en cas d'échec
+    // Code d'erreur MySQL pour "Duplicate column name"
+    if (error.code === 'ER_DUP_FIELDNAME') {
+      console.log('⚠️ La colonne existe déjà. Migration ignorée en toute sécurité.');
+    } else {
+      console.error('❌ Échec de la migration :', error.message);
+      process.exit(1); // Bloque le build Render uniquement si c'est une autre erreur critique
+    }
   } finally {
     await connection.end();
   }
